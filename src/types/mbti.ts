@@ -14,7 +14,14 @@ export interface Answer {
   };
 }
 
-export interface MBTIType {
+export interface MBTIPoints {
+  first: { I: number; E: number };
+  second: { N: number; S: number };
+  third: { T: number; F: number };
+  fourth: { J: number; P: number };
+}
+
+export interface MBTIDescription {
   title: string;
   description: string;
   characteristics: string[];
@@ -32,7 +39,7 @@ export interface MBTIType {
 }
 
 export interface MBTIDescriptions {
-  [key: string]: MBTIType;
+  [key: string]: MBTIDescription;
 }
 
 export interface MBTIResult {

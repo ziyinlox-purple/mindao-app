@@ -1,14 +1,17 @@
-import { useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useWallet } from '@aptos-labs/wallet-adapter-react';
 import { useToast } from '@chakra-ui/react';
 import { Aptos, AptosConfig, Network } from '@aptos-labs/ts-sdk';
 import { console } from 'inspector';
+import { MBTIPoints } from '../types/mbti';
 
 const config = new AptosConfig({ network: Network.TESTNET });
 const aptos = new Aptos(config);
 
 export function useWalletIntegration() {
   const { connect, account, connected, disconnect, signAndSubmitTransaction } = useWallet();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isMinted, setIsMinted] = useState(false);
   const toast = useToast();
 
   const handleWalletConnection = useCallback(async () => {
@@ -43,11 +46,15 @@ export function useWalletIntegration() {
     }
   }, [connect, connected, disconnect, toast]);
 
-  const handleMint = useCallback(async (mbtiType: string, timestamp: string, points: any) => {
+  const handleMint = useCallback(async (
+    mbtiType: string,
+    timestamp: string,
+    points: MBTIPoints
+  ) => {
     if (!connected || !account) {
       toast({
         title: '请先连接钱包',
-        description: '需要连接 Petra 钱包才能铸造 SBT',
+        description: '铸造 SBT 需要连接钱包',
         status: 'warning',
         duration: 3000,
         isClosable: true,
@@ -55,7 +62,7 @@ export function useWalletIntegration() {
       return;
     }
 
-
+    setIsProcessing(true);
     try {
       toast({
         title: '准备铸造',
@@ -89,6 +96,7 @@ export function useWalletIntegration() {
         transactionHash: response.hash,
       });
 
+      setIsMinted(true);
       toast({
         title: 'MinDAO SBT 铸造成功！',
         description: '你的 MBTI SBT 已经铸造完成',
@@ -108,13 +116,23 @@ export function useWalletIntegration() {
         isClosable: true,
       });
       throw error;
+    } finally {
+      setIsProcessing(false);
     }
   }, [account, connected, signAndSubmitTransaction, toast]);
+
+  const resetMintStatus = () => {
+    setIsMinted(false);
+  };
 
   return {
     connected,
     account,
+    isProcessing,
+    isMinted,
     handleWalletConnection,
     handleMint,
+    resetMintStatus,
+    disconnect,
   };
 } 

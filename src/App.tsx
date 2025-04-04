@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChakraProvider } from '@chakra-ui/react';
+import { ChakraProvider, Box } from '@chakra-ui/react';
 import { AptosWalletAdapterProvider } from '@aptos-labs/wallet-adapter-react';
 import { PetraWallet } from 'petra-plugin-wallet-adapter';
 import { format } from 'date-fns';
@@ -8,6 +8,7 @@ import { zhCN } from 'date-fns/locale';
 import { Welcome } from './components/Welcome';
 import { Question } from './components/Question';
 import { Results } from './components/Results';
+import { Header } from './components/Header';
 import { useMBTI } from './hooks/useMBTI';
 import { useWalletIntegration } from './hooks/useWalletIntegration';
 import { questions } from './data/mbti-questions';
@@ -35,8 +36,11 @@ function App() {
   const {
     connected,
     account,
+    isProcessing,
+    isMinted,
     handleWalletConnection,
     handleMint,
+    resetMintStatus,
   } = useWalletIntegration();
 
   useEffect(() => {
@@ -48,15 +52,30 @@ function App() {
 
   const handleStartTest = () => {
     setShowWelcome(false);
+    resetMintStatus(); // Reset mint status when starting a new test
+  };
+
+  const handleRetakeTestClick = () => {
+    resetMintStatus(); // Reset mint status when retaking the test
+    handleRetakeTest();
   };
 
   const handleMintClick = async () => {
     if (!connected) {
-      await handleWalletConnection();
-    } else {
-      console.log('minting...');
-      const mbtiType = calculateMBTIType();
+      try {
+        await handleWalletConnection();
+      } catch (error) {
+        console.error('Wallet connection failed:', error);
+      }
+      return;
+    }
+
+    // Only proceed with minting if wallet is connected
+    const mbtiType = calculateMBTIType();
+    try {
       await handleMint(mbtiType, timestamp, points);
+    } catch (error) {
+      console.error('Minting failed:', error);
     }
   };
 
@@ -79,7 +98,9 @@ function App() {
           connected={connected}
           account={account}
           onMint={handleMintClick}
-          onRetakeTest={handleRetakeTest}
+          onRetakeTest={handleRetakeTestClick}
+          isMinted={isMinted}
+          isProcessing={isProcessing}
         />
       );
     }
@@ -98,8 +119,11 @@ function App() {
 
   return (
     <ChakraProvider>
-      <AptosWalletAdapterProvider plugins={wallets} autoConnect={false}>
-        {content()}
+      <AptosWalletAdapterProvider wallets={wallets} autoConnect={false}>
+        <Box minHeight="100vh" pt={16}>
+          <Header onConnect={handleWalletConnection} />
+          {content()}
+        </Box>
       </AptosWalletAdapterProvider>
     </ChakraProvider>
   );
